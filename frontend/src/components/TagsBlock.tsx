@@ -1,4 +1,5 @@
 import React, { FC } from "react";
+import { Link } from 'react-router-dom';
 
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
@@ -20,11 +21,12 @@ export const TagsBlock: FC<TagsBlockPropsType> = ({ items, isLoading = true }) =
     <SideBlock title="Тэги">
       <List>
         {(isLoading ? [...Array(5)] : items).map((name, i) => (
-          <a
+          <Link
+            key={i}
             style={{ textDecoration: "none", color: "black" }}
-            href={`/tags/${name}`}
+            to={`/tags/${name}`}
           >
-            <ListItem key={i} disablePadding>
+            <ListItem disablePadding>
               <ListItemButton>
                 <ListItemIcon>
                   <TagIcon />
@@ -36,7 +38,7 @@ export const TagsBlock: FC<TagsBlockPropsType> = ({ items, isLoading = true }) =
                 )}
               </ListItemButton>
             </ListItem>
-          </a>
+          </Link>
         ))}
       </List>
     </SideBlock>
