@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import multer from 'multer';
 import cors from 'cors';
 
-import { loginValidation, registerValidation, postCreateValidation } from './validations/index.js';
+import { loginValidation, registerValidation, postCreateValidation, commentCreateValidation } from './validations/index.js';
 import { UserController, PostController} from './controllers/index.js';
 import { checkAuth, handleValidationErrors } from './utils/index.js';
 
@@ -19,13 +19,14 @@ const storage = multer.diskStorage({
         cb(null, 'uploads')
     },
     filename: (_, file, cb) => {
-        cb(null, file.originalname)
+        cb(null, new Date().getMilliseconds() + '-' + file.originalname)
     },
 })
 
 const upload  = multer({storage});
 
 app.use(express.json());
+
 app.use(cors());
 app.use('/uploads', express.static('uploads'));
 
@@ -33,7 +34,7 @@ app.get('/', (req, res) => {
     res.send('Hello world')
 });
 
-app.post('/auth/register', registerValidation, handleValidationErrors, UserController.register);
+app.post('/auth/register', upload.single('image'), registerValidation, handleValidationErrors, UserController.register);
 app.post('/auth/login', loginValidation, handleValidationErrors, UserController.login);
 app.get('/auth/me', checkAuth, UserController.getMe);
 
@@ -43,11 +44,15 @@ app.post('/upload', checkAuth, upload.single('image'), (req, res) => {
     })
 })
 
+// app.get('/posts/search', PostController.getSearch);
 app.get('/posts', PostController.getAll);
 app.get('/posts/:id', PostController.getOne);
 app.get('/tags', PostController.getLastTags);
+app.get('/comments', PostController.getLastComments);
 app.post('/posts', checkAuth, postCreateValidation, handleValidationErrors, PostController.create);
 app.patch('/posts/:id', checkAuth, postCreateValidation, handleValidationErrors, PostController.update);
+
+app.patch('/posts/:id/comment', checkAuth, commentCreateValidation, handleValidationErrors, PostController.createComment);
 app.delete('/posts/:id', checkAuth, PostController.remove);
 
 app.listen(4444, (err) => {

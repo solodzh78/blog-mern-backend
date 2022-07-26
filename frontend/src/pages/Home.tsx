@@ -1,29 +1,76 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import Grid from '@mui/material/Grid';
+import { Box, Button, ButtonGroup } from '@mui/material';
+import TagIcon from "@mui/icons-material/Tag";
 
 import { Post } from '../components/Post';
 import { TagsBlock } from '../components/TagsBlock';
 import { CommentsBlock } from '../components/CommentsBlock';
 import { useAppDispatch, useAppSelector } from '../store/store';
-import { fetchPosts, fetchTags, StatusEnum } from '../store/slices/posts';
+import { fetchComments, fetchPosts, fetchTags, StatusEnum } from '../store/slices/posts';
 import { PostSkeleton } from '../components/Post/Skeleton';
 
 export const Home = () => {
     const dispatch = useAppDispatch();
-    const { posts, tags } = useAppSelector((state) => state.posts);
+    const { posts, tags, comments } = useAppSelector((state) => state.posts);
+    const authUserId = useAppSelector((state) => state.auth.data?._id);
     const isPostLoading = posts.status === StatusEnum.LOADING;
     const isTagsLoading = tags.status === StatusEnum.LOADING;
+    const isCommentsLoading = tags.status === StatusEnum.LOADING;
+
+    const [activeTab, setActiveTab] = useState(0);
+    const [checkedTags, setCheckedTags] = useState([] as string[]);
+
 
     useEffect(() => {
-        dispatch(fetchPosts());
-        dispatch(fetchTags());
+
+        const tagsString = checkedTags.reduce((akk, tag) => {
+            return `${akk}${akk==='' ? '' : '&'}tags=${tag}`;
+        }, '');
+        const sortString = activeTab===1 ? `sort=-viewsCount` : '';
+        const fetchString = (!tagsString && !sortString) 
+            ? '' 
+            : `?${tagsString}${tagsString==='' ? '' : '&'}${sortString}`;
+
+        dispatch(fetchPosts(fetchString));
+        dispatch(fetchTags(fetchString));
+        dispatch(fetchComments(fetchString));
+    }, [activeTab, checkedTags]);
+    
+    const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+        setActiveTab(newValue);
+    };
+
+    const onClickTagButtonHandler = useCallback((tag: string) => {
+        setCheckedTags(prev => {
+            const tempArr = [...prev];
+                if (prev.includes(tag)) {
+                    return tempArr.filter(item => item!==tag)
+                }
+            tempArr.push(tag);
+            return tempArr;
+        });
     }, []);
 
+    const onClickCommentHandler = (id: string) => {};
+    
     return (
         <>
-            <Tabs style={{ marginBottom: 15 }} value={0} aria-label="basic tabs example">
+            {checkedTags.length > 0 && <Box
+                sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'left',
+                    '& > *': { m: 1 },
+                }}
+            >
+                <ButtonGroup variant="text" size="small" aria-label="small text button group">
+                    {checkedTags.map(tag => <Button onClick={onClickTagButtonHandler.bind(null, tag)}><TagIcon/>{tag}</Button>)}
+                </ButtonGroup>
+            </Box>}
+            <Tabs style={{ marginBottom: 15 }} value={activeTab} onChange={handleTabChange} aria-label="basic tabs example">
                 <Tab label="Новые" />
                 <Tab label="Популярные" />
             </Tabs>
@@ -31,43 +78,26 @@ export const Home = () => {
                 <Grid xs={8} item>
                     {(isPostLoading 
                         ? [...Array(5)].map((_, index) => <PostSkeleton key={index} />) 
-                        : posts.items.map(post => 
-                            <Post
+                        : posts.items.map(post => {
+
+                            return <Post
                                 key={post._id}
                                 _id={post._id}
                                 title={post.title}
-                                imageUrl={post.imageUrl}
+                                imageUrl={post.imageUrl ? post.imageUrl : ''}
                                 user={post.user}
                                 createdAt={post.createdAt}
                                 viewsCount={post.viewsCount}
-                                commentsCount={post.commentsCount}
+                                commentsCount={post.comments.length}
                                 tags={post.tags}
-                                isEditable
-                            />
+                                isEditable={authUserId ? (authUserId===post.user._id) : false}
+                            />}
                         )
                     )}
                 </Grid>
                 <Grid xs={4} item>
-                    <TagsBlock items={tags.items} isLoading={isTagsLoading} />
-                    <CommentsBlock
-                        items={[
-                            {
-                                user: {
-                                    fullName: 'Вася Пупкин',
-                                    avatarUrl: 'https://mui.com/static/images/avatar/1.jpg',
-                                },
-                                text: 'Это тестовый комментарий',
-                            },
-                            {
-                                user: {
-                                    fullName: 'Иван Иванов',
-                                    avatarUrl: 'https://mui.com/static/images/avatar/2.jpg',
-                                },
-                                text: 'When displaying three lines or more, the avatar is not aligned at the top. You should set the prop to align the avatar at the top',
-                            },
-                        ]}
-                        isLoading={false}
-                    />
+                    <TagsBlock items={tags.items} isLoading={isTagsLoading} onClickTagButtonHandler={onClickTagButtonHandler}/>
+                    <CommentsBlock items={comments.items} isLoading={isCommentsLoading} onClickCommentHandler={onClickCommentHandler}/>
                 </Grid>
             </Grid>
         </>

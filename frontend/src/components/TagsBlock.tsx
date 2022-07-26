@@ -1,4 +1,4 @@
-import React, { FC } from "react";
+import React, { FC, useState } from "react";
 import { Link } from 'react-router-dom';
 
 import List from "@mui/material/List";
@@ -12,35 +12,33 @@ import Skeleton from "@mui/material/Skeleton";
 import { SideBlock } from "./SideBlock";
 
 type TagsBlockPropsType = {
-  items: string[];
-  isLoading: boolean;
+    items: string[];
+    isLoading: boolean;
+    onClickTagButtonHandler: (tag: string) => void;
 }
 
-export const TagsBlock: FC<TagsBlockPropsType> = ({ items, isLoading = true }) => {
-  return (
-    <SideBlock title="Тэги">
-      <List>
-        {(isLoading ? [...Array(5)] : items).map((name, i) => (
-          <Link
-            key={i}
-            style={{ textDecoration: "none", color: "black" }}
-            to={`/tags/${name}`}
-          >
-            <ListItem disablePadding>
-              <ListItemButton>
-                <ListItemIcon>
-                  <TagIcon />
-                </ListItemIcon>
-                {isLoading ? (
-                  <Skeleton width={100} />
-                ) : (
-                  <ListItemText primary={name} />
-                )}
-              </ListItemButton>
-            </ListItem>
-          </Link>
-        ))}
-      </List>
-    </SideBlock>
-  );
+export const TagsBlock: FC<TagsBlockPropsType> = ({ items, isLoading = true, onClickTagButtonHandler }) => {
+
+    return (
+        <SideBlock title="Тэги">
+            <List>
+                {(isLoading ? [...Array(5)] : items).map((name, i) => {
+                    return (
+                        <ListItem key={i} disablePadding>
+                            <ListItemButton onClick={onClickTagButtonHandler.bind(null, name)}>
+                                <ListItemIcon>
+                                    <TagIcon />
+                                </ListItemIcon>
+                                {isLoading ? (
+                                    <Skeleton width={100} />
+                                ) : (
+                                    <ListItemText primary={name} />
+                                )}
+                            </ListItemButton>
+                        </ListItem>
+                    )
+                })}
+            </List>
+        </SideBlock>
+    );
 };

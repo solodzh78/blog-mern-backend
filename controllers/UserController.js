@@ -1,10 +1,12 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt'
-import { validationResult } from 'express-validator';
 import UserModel from '../models/User.js';
 
 export const register = async (req, res) => {
+    console.log('body: ', req.body);
+    console.log('file: ', req.file);
     try {
+
         const password = req.body.password;
         const salt = await bcrypt.genSalt(10);
         const hash = await bcrypt.hash(password, salt);
@@ -12,7 +14,7 @@ export const register = async (req, res) => {
         const doc = new UserModel({
             email: req.body.email,
             fullName: req.body.fullName,
-            avatarUrl: req.body.avatarUrl,
+            avatarUrl: `uploads/${req.file.filename}`,
             passwordHash: hash,
         });
 

@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import User from './User.js';
+import Comment from './Comment.js';
 
 const PostSchema = new mongoose.Schema({
     title: {
@@ -23,6 +24,10 @@ const PostSchema = new mongoose.Schema({
         type: Number,
         default: 0,
     },
+    comments: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: Comment,
+    }],
     imageUrl: String,
 },
 {

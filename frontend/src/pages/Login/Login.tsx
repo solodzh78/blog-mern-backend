@@ -4,11 +4,17 @@ import TextField from "@mui/material/TextField";
 import Paper from "@mui/material/Paper";
 import Button from "@mui/material/Button";
 import { useForm } from "react-hook-form";
+import { Navigate } from "react-router-dom";
 
 import styles from "./Login.module.scss";
 
+import { AuthUserDataType, AuthValuesType, fetchAuth, selectIsAuth } from "../../store/slices/auth";
+import { useAppDispatch, useAppSelector } from "../../store/store";
+
 export const Login = () => {
 
+    const isAuth = useAppSelector(selectIsAuth);
+    const dispatch = useAppDispatch();
     const { 
         register, 
         handleSubmit, 
@@ -22,13 +28,14 @@ export const Login = () => {
         mode: 'onChange'
     });
 
-    type ValuesFormType = {
-        email: string;
-        password: string;
-    }
+    if (isAuth) return <Navigate to='/'/>;
 
-    const onSubmit = (values: ValuesFormType) => {
-        console.log(values);
+    const onSubmit = async (values: AuthValuesType) => {
+        const data = await dispatch(fetchAuth(values));
+        const payload = data.payload as AuthUserDataType;
+        if (payload && 'token' in payload) {
+            localStorage.setItem('token', payload.token);
+        }
     };
 
     return (
