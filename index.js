@@ -8,7 +8,7 @@ import { UserController, PostController} from './controllers/index.js';
 import { checkAuth, handleValidationErrors } from './utils/index.js';
 
 mongoose
-    .connect('mongodb+srv://admin:wwwwww@cluster0.g2etn.mongodb.net/blog?retryWrites=true&w=majority')
+    .connect(process.env.MONGO_DB_URI)
     .then(() => console.log('DB ok'))
     .catch((err) => console.log('Db error', err));
 
@@ -44,7 +44,6 @@ app.post('/upload', checkAuth, upload.single('image'), (req, res) => {
     })
 })
 
-// app.get('/posts/search', PostController.getSearch);
 app.get('/posts', PostController.getAll);
 app.get('/posts/:id', PostController.getOne);
 app.get('/tags', PostController.getLastTags);
@@ -55,7 +54,7 @@ app.patch('/posts/:id', checkAuth, postCreateValidation, handleValidationErrors,
 app.patch('/posts/:id/comment', checkAuth, commentCreateValidation, handleValidationErrors, PostController.createComment);
 app.delete('/posts/:id', checkAuth, PostController.remove);
 
-app.listen(4444, (err) => {
+app.listen(process.env.PORT || 4444, (err) => {
     if (err) {
         return console.log(err);
     }
