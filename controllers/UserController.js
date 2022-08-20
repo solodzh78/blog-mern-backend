@@ -1,6 +1,6 @@
-import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt'
 import UserModel from '../models/User.js';
+import { userDTO, userDTOwithToken } from '../utils/userDataTransferObject.js';
 
 export const register = async (req, res) => {
     console.log('body: ', req.body);
@@ -14,28 +14,14 @@ export const register = async (req, res) => {
         const doc = new UserModel({
             email: req.body.email,
             fullName: req.body.fullName,
-            avatarUrl: `uploads/${req.file.filename}`,
+            avatarUrl: req.file ? `uploads/${req.file.filename}` : '',
             passwordHash: hash,
         });
 
         const user = await doc.save();
 
-        const token  = jwt.sign(
-            {
-                _id: user._id
-            }, 
-            'secret123', 
-            {
-                expiresIn: '30d'
-            }
-        );
+        res.json(userDTOwithToken(user._doc));
 
-        const {passwordHash, ...userData} = user._doc;
-
-        res.json({
-            ...userData,
-            token
-        });
     } catch (error) {
         console.log('error: ', error);
         res.status(500).json({
@@ -64,22 +50,7 @@ export const login = async (req, res) => {
             })
         }
 
-        const token  = jwt.sign(
-            {
-                _id: user._id
-            }, 
-            'secret123', 
-            {
-                expiresIn: '30d'
-            }
-        );
-
-        const {passwordHash, ...userData} = user._doc;
-
-        res.json({
-            ...userData,
-            token
-        });
+        res.json(userDTOwithToken(user._doc));
 
     } catch (error) {
         console.log('error: ', error);
@@ -99,7 +70,8 @@ export const getMe = async (req, res) => {
             })
         }
         
-        res.json(user._doc);
+        res.json(userDTO(user._doc));
+
     } catch (error) {
         console.log('error: ', error);
         res.status(500).json({

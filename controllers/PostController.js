@@ -2,6 +2,11 @@ import PostModel from '../models/Post.js';
 import CommentModel from '../models/Comment.js';
 import UserModel from '../models/User.js';
 
+const userRespObj = {
+    path: 'user',
+    select: ['fullName', 'avatarUrl']
+};
+
 export const getAll = async (req, res) => {
     try {
         const sort = req.query?.sort;
@@ -10,7 +15,7 @@ export const getAll = async (req, res) => {
         const post = await PostModel
             .find(tags ? {tags: tags} : {})
             .sort(sort ? sort : '-createdAt')
-            .populate('user')
+            .populate(userRespObj)
             .exec();
         
         res.json(post);
@@ -60,7 +65,7 @@ export const getLastComments = async (req, res) => {
             .limit(5)
             .populate({
                 path: 'comments',
-                populate: {path: 'user'}
+                populate: userRespObj
             })
             .exec();
 
@@ -103,10 +108,10 @@ export const getOne = async (req, res) => {
 
                 res.json(doc);
             }
-        ).populate('user')
+        ).populate(userRespObj)
         .populate({
             path: 'comments',
-            populate: {path: 'user'}
+            populate: userRespObj
         });
         
     } catch (error) {
@@ -179,14 +184,16 @@ export const createComment = async (req, res) => {
 
         const { comments } = await PostModel.findById(postId);
 
-        await PostModel.findByIdAndUpdate(
+        const updatedPost = await PostModel.findByIdAndUpdate(
             { _id: postId },
-            {
-                comments: [...comments, newComment._id]
-            }
-        );
-
-        const updatedPost = await PostModel.findById(postId).populate('comments');
+            { comments: [...comments, newComment._id] },
+            { returnDocument: 'after' },
+        )
+        .populate(userRespObj)
+        .populate({
+            path: 'comments',
+            populate: userRespObj
+        });
 
         res.json(updatedPost);
 
