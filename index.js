@@ -7,8 +7,8 @@ import fs from 'fs';
 import { loginValidation, registerValidation, postCreateValidation, commentCreateValidation } from './validations/index.js';
 import { UserController, PostController} from './controllers/index.js';
 import { checkAuth, handleValidationErrors } from './utils/index.js';
-import { MONGO_DB_URI } from './constants.js';
-import { PORT } from './constants.js';
+import { MONGO_DB_URI } from './config/constants.js';
+import { PORT } from './config/constants.js';
 
 mongoose
     .connect(MONGO_DB_URI)

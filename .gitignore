@@ -3,4 +3,4 @@
 
 /uploads
 
-constants.js
+/config/secret
