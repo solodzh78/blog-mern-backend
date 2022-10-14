@@ -3,10 +3,7 @@ import UserModel from '../models/User.js';
 import { userDTO, userDTOwithToken } from '../utils/userDataTransferObject.js';
 
 export const register = async (req, res) => {
-    console.log('body: ', req.body);
-    console.log('file: ', req.file);
     try {
-
         const password = req.body.password;
         const salt = await bcrypt.genSalt(10);
         const hash = await bcrypt.hash(password, salt);
