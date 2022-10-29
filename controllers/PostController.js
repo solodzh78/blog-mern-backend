@@ -1,23 +1,11 @@
-import PostModel from '../models/Post.js';
-import CommentModel from '../models/Comment.js';
-import UserModel from '../models/User.js';
-
-const userRespObj = {
-    path: 'user',
-    select: ['fullName', 'avatarUrl']
-};
+import { PostService } from '../services/index.js'
 
 export const getAll = async (req, res) => {
     try {
         const sort = req.query?.sort;
         const tags = req.query?.tags;
 
-        const post = await PostModel
-            .find(tags ? {tags: tags} : {})
-            .sort(sort ? sort : '-createdAt')
-            .populate(userRespObj)
-            .exec();
-        
+        const post = await PostService.getAll(sort, tags);
         res.json(post);
 
     } catch (error) {
@@ -33,17 +21,7 @@ export const getLastTags = async (req, res) => {
         const sort = req.query?.sort;
         const tagsReq = req.query?.tags;
 
-        const posts = await PostModel
-            .find(tagsReq ? {tags: tagsReq} : {})
-            .sort(sort ? sort : '-createdAt')
-            .limit(5)
-            .exec();
-
-        const tags = [...new Set(posts
-            .map(post => post.tags)
-            .flat()
-            .slice(0, 5))];
-
+        const tags = await PostService.getLastTags(sort, tagsReq);
         res.json(tags);
 
     } catch (error) {
@@ -59,22 +37,7 @@ export const getLastComments = async (req, res) => {
         const sort = req.query?.sort;
         const tagsReq = req.query?.tags;
 
-        const posts = await PostModel
-            .find(tagsReq ? {tags: tagsReq} : {})
-            .sort(sort ? sort : '-createdAt')
-            .limit(5)
-            .populate({
-                path: 'comments',
-                populate: userRespObj
-            })
-            .exec();
-
-        const comments = posts
-            .map(post => post.comments)
-            .flat()
-            .sort((a, b) => new Date(b.createdAt).valueOf() - new Date(a.createdAt).valueOf())
-            .slice(0, 5);
-
+        const comments = await PostService.getLastComments(sort, tagsReq);
         res.json(comments);
 
     } catch (error) {
@@ -88,31 +51,8 @@ export const getLastComments = async (req, res) => {
 export const getOne = async (req, res) => {
     try {
         const postId = req.params.id;
-        PostModel.findByIdAndUpdate(
-            { _id: postId },
-            { $inc: { viewsCount: 1 } },
-            { returnDocument: 'after' },
-            (err, doc) => {
-                if (err) {
-                    console.log(err);
-                    return res.status(500).json({
-                        message: 'Не удалось вернуть статью',
-                    });
-                }
-
-                if (!doc) {
-                    return res.status(404).json({
-                        message: 'Статья не найдена',
-                    });
-                }
-
-                res.json(doc);
-            }
-        ).populate(userRespObj)
-        .populate({
-            path: 'comments',
-            populate: userRespObj
-        });
+        const post = await PostService.getOne(postId);
+        res.json(post);
         
     } catch (error) {
         console.log('error: ', error);
@@ -124,15 +64,15 @@ export const getOne = async (req, res) => {
 
 export const create = async (req, res) => {
     try {
-        const doc = new PostModel({
+        const doc = {
             title: req.body.title,
             text: req.body.text,
             tags: req.body.tags,
             imageUrl: req.body.imageUrl,
             user: req.userId,
-        })
-
-        const post = await doc.save();
+        }
+        
+        const post = await PostService.create(doc);
 
         res.json(post);
 
@@ -147,20 +87,18 @@ export const create = async (req, res) => {
 export const update = async (req, res) => {
     try {
         const postId = req.params.id;
-        await PostModel.findByIdAndUpdate(
-            { _id: postId },
-            {
-                title: req.body.title,
-                text: req.body.text,
-                tags: req.body.tags,
-                imageUrl: req.body.imageUrl,
-                user: req.userId,
-            }
-        );
+        const doc = {
+            title: req.body.title,
+            text: req.body.text,
+            tags: req.body.tags,
+            imageUrl: req.body.imageUrl,
+            user: req.userId,
+        };
+        await PostService.update(postId, doc);
         
         res.json({
             message: 'Статья успешно обновлена'
-        })
+        });
 
     } catch (error) {
         console.log('error: ', error);
@@ -173,27 +111,12 @@ export const update = async (req, res) => {
 export const createComment = async (req, res) => {
     try {
         const postId = req.params.id;
-
-        const doc = new CommentModel({
+        const comment = {
             commentText: req.body.commentText,
             user: req.userId,
             post: postId,
-        });
-
-        const newComment = await doc.save();
-
-        const { comments } = await PostModel.findById(postId);
-
-        const updatedPost = await PostModel.findByIdAndUpdate(
-            { _id: postId },
-            { comments: [...comments, newComment._id] },
-            { returnDocument: 'after' },
-        )
-        .populate(userRespObj)
-        .populate({
-            path: 'comments',
-            populate: userRespObj
-        });
+        };
+        const updatedPost = await PostService.createComment(postId, comment);
 
         res.json(updatedPost);
 
@@ -205,30 +128,20 @@ export const createComment = async (req, res) => {
     }
 };
 
+export const fileUpload = (req, res) => {
+    res.json({
+        url: `uploads/${req.file.filename}`,
+    })
+};
+
 export const remove = async (req, res) => {
     try {
         const postId = req.params.id;
-        PostModel.findByIdAndRemove(
-            { _id: postId },
-            (err, doc) => {
-                if (err) {
-                    return res.status(500).json({
-                        massage: 'Не удалось удалить статью'
-                    })
-                }
+        await PostService.remove(postId);
+        res.json({
+            message: 'Статья успешно удалена'
+        })
 
-                if (!doc) {
-                    return res.status(404).json({
-                        message: 'Статья не найдена'
-                    })
-                }
-
-                res.json({
-                    message: 'Статья успешно удалена'
-                })
-            }
-        );
-        
     } catch (error) {
         console.log('error: ', error);
         res.status(500).json({

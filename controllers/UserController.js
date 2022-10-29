@@ -1,54 +1,33 @@
-import bcrypt from 'bcrypt'
-import UserModel from '../models/User.js';
-import { userDTO, userDTOwithToken } from '../utils/userDataTransferObject.js';
+import { TokenService, UserService } from '../services/index.js';
+import { setCookie } from '../utils/setCookie.js';
 
 export const register = async (req, res) => {
     try {
-        const password = req.body.password;
-        const salt = await bcrypt.genSalt(10);
-        const hash = await bcrypt.hash(password, salt);
+        const {body: { email, password, fullName }, file} = req;
+        const avatarUrl = file ? `uploads/${file.filename}` : '';
 
-        const doc = new UserModel({
-            email: req.body.email,
-            fullName: req.body.fullName,
-            avatarUrl: req.file ? `uploads/${req.file.filename}` : '',
-            passwordHash: hash,
-        });
+        const user = await UserService.registration(email, password, fullName, avatarUrl);
 
-        const user = await doc.save();
-
-        res.json(userDTOwithToken(user._doc));
+        const token = TokenService.create(user)
+        setCookie(res, token);
+        res.json(user);
 
     } catch (error) {
         console.log('error: ', error);
         res.status(500).json({
-            message: 'Не удалось зарегистрироваться'
+            message: 'Не удалось зарегистрироваться',
+            error
         });
     }
 }
 
 export const login = async (req, res) => {
     try {
-        const user = await UserModel.findOne({
-            email: req.body.email,
-        });
-
-        if (!user) {
-            return res.status(404).json({
-                message: 'Пользователь с таким email не зарегистрирован'
-            })
-        }
-
-        const isValidPass = await bcrypt.compare(req.body.password, user._doc.passwordHash);
-
-        if (!isValidPass) {
-            return res.status(404).json({
-                message: 'Неверный пароль'
-            })
-        }
-
-        res.json(userDTOwithToken(user._doc));
-
+        const { email, password } = req.body
+        const user = await UserService.login(email, password);
+        const token = TokenService.create(user);
+        setCookie(res, token);
+        res.json(user);
     } catch (error) {
         console.log('error: ', error);
         res.status(500).json({
@@ -57,17 +36,22 @@ export const login = async (req, res) => {
     }
 }
 
+export const logout = async (req, res) => {
+
+    try {
+        res.clearCookie('token');
+        res.json({
+            message: 'Logout successfull'
+        });
+    } catch (e) {
+        console.log(e);
+    }
+}
+
 export const getMe = async (req, res) => {
     try {
-        const user = await UserModel.findById(req.userId);
-
-        if (!user) {
-            return res.status(404).json({
-                message: 'Пользователь не найден',
-            })
-        }
-        
-        res.json(userDTO(user._doc));
+        const user = await UserService.getMe(req.userId);
+        res.json(user);
 
     } catch (error) {
         console.log('error: ', error);

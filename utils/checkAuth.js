@@ -1,12 +1,13 @@
-import jwt from 'jsonwebtoken';
+import { TokenService } from '../services/index.js';
 
 export default (req, res, next) => {
-    const token = (req.headers.authorization || '').replace(/Bearer\s?/, '');
+    const token = req.cookies.token;
 
     if (token) {
         try {
-            const decoded = jwt.decode(token, 'secret123');
+            const decoded = TokenService.decode(token);
             req.userId = decoded._id;
+            console.log('Проверка пользователя выполнена успешно');
             next();
         } catch (error) {
             return res.status(403).json({
