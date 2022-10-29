@@ -4,5 +4,7 @@ export const setCookie = (res, token) => {
     res.cookie('token', token, {
         maxAge: COOKIE_LIFETIME,
         httpOnly: true,
+        sameSite: 'none',
+        secure: true,
     });
 }
