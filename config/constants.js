@@ -5,4 +5,5 @@ export const JWT_SECRET = process.env.JWT_SECRET || (await import('./secret/cons
 const AUTH_LIFETIME = '25d';
 export const JWT_TOKEN_LIFETIME = process.env.JWT_TOKEN_LIFETIME || AUTH_LIFETIME;
 export const COOKIE_LIFETIME = timeConvertor(JWT_TOKEN_LIFETIME);
-export const PORT = process.env.PORT || 4444;
+export const PORT = 80;
+// process.env.PORT || 4444;
